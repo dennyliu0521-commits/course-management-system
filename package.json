@@ -1,0 +1,16 @@
+{
+  "name": "course-management-system",
+  "private": true,
+  "version": "1.0.0",
+  "description": "课程管理系统（课程 / 学生 / 教师 / 课程规划）",
+  "scripts": {
+    "install:all": "npm install --prefix server && npm install --prefix client",
+    "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "start": "npm run build --prefix client && npm run start --prefix server",
+    "start:api": "npm run start --prefix server",
+    "build": "npm run build --prefix client"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}
