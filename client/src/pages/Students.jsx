@@ -1,18 +1,20 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../api.js";
 
-const empty = { name: "", student_no: "", email: "", major: "", enrollment_year: "" };
+const empty = { name: "", student_no: "", email: "", class_id: "" };
 
 export default function Students() {
   const [rows, setRows] = useState([]);
+  const [classes, setClasses] = useState([]);
   const [form, setForm] = useState(empty);
   const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState(null);
 
   const load = useCallback(async () => {
     setError(null);
-    const data = await api.students.list();
+    const [data, cls] = await Promise.all([api.students.list(), api.classes.list()]);
     setRows(data);
+    setClasses(cls);
   }, []);
 
   useEffect(() => {
@@ -25,8 +27,7 @@ export default function Students() {
       name: row.name,
       student_no: row.student_no,
       email: row.email || "",
-      major: row.major || "",
-      enrollment_year: row.enrollment_year ?? "",
+      class_id: row.class_id ? String(row.class_id) : "",
     });
   }
 
@@ -35,8 +36,10 @@ export default function Students() {
     setError(null);
     try {
       const payload = {
-        ...form,
-        enrollment_year: form.enrollment_year === "" ? null : Number(form.enrollment_year),
+        name: form.name,
+        student_no: form.student_no,
+        email: form.email,
+        class_id: form.class_id ? Number(form.class_id) : null,
       };
       if (editingId) await api.students.update(editingId, payload);
       else await api.students.create(payload);
@@ -62,7 +65,7 @@ export default function Students() {
   return (
     <>
       <h1 className="page-title">学生管理</h1>
-      <p className="page-desc">维护学号、姓名、专业与入学年份。</p>
+      <p className="page-desc">维护学号、姓名、邮箱与班级归属。班级需先在「班级管理」中创建。</p>
       {error && <div className="msg msg-error">{error}</div>}
       <div className="card">
         <h2>{editingId ? "编辑学生" : "新增学生"}</h2>
@@ -74,30 +77,22 @@ export default function Students() {
             </label>
             <label>
               学号
-              <input
-                required
-                value={form.student_no}
-                onChange={(e) => setForm({ ...form, student_no: e.target.value })}
-              />
+              <input required value={form.student_no} onChange={(e) => setForm({ ...form, student_no: e.target.value })} />
             </label>
             <label>
               邮箱
               <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
             </label>
             <label>
-              专业
-              <input value={form.major} onChange={(e) => setForm({ ...form, major: e.target.value })} />
-            </label>
-            <label>
-              入学年份
-              <input
-                type="number"
-                min="1990"
-                max="2100"
-                placeholder="如 2023"
-                value={form.enrollment_year}
-                onChange={(e) => setForm({ ...form, enrollment_year: e.target.value })}
-              />
+              班级
+              <select value={form.class_id} onChange={(e) => setForm({ ...form, class_id: e.target.value })}>
+                <option value="">未分配</option>
+                {classes.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.class_code}（{c.enrollment_year}届 {c.major} {c.class_number}班）
+                  </option>
+                ))}
+              </select>
             </label>
           </div>
           <div className="btn-row" style={{ marginTop: "1rem" }}>
@@ -127,8 +122,7 @@ export default function Students() {
               <tr>
                 <th>学号</th>
                 <th>姓名</th>
-                <th>专业</th>
-                <th>入学年份</th>
+                <th>班级</th>
                 <th>邮箱</th>
                 <th />
               </tr>
@@ -138,8 +132,13 @@ export default function Students() {
                 <tr key={r.id}>
                   <td>{r.student_no}</td>
                   <td>{r.name}</td>
-                  <td>{r.major || "—"}</td>
-                  <td>{r.enrollment_year ?? "—"}</td>
+                  <td>
+                    {r.class_code ? (
+                      <span className="badge">{r.class_code}</span>
+                    ) : (
+                      <span style={{ color: "var(--muted)" }}>—</span>
+                    )}
+                  </td>
                   <td style={{ color: "var(--muted)" }}>{r.email || "—"}</td>
                   <td>
                     <div className="btn-row">

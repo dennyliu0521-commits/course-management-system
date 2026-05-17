@@ -316,6 +316,165 @@ textarea {
   align-items: start;
 }
 
+.class-check-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.35rem;
+}
+.class-check-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  cursor: pointer;
+  font-size: 0.85rem;
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 400;
+  color: var(--text);
+}
+.class-check-label:hover {
+  border-color: var(--accent);
+}
+
+/* Calendar */
+.week-nav {
+  margin-bottom: 1.25rem;
+}
+.week-nav-inner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.week-label {
+  font-size: 1.05rem;
+  font-weight: 600;
+  padding: 0 0.75rem;
+  white-space: nowrap;
+}
+.tab-bar {
+  display: flex;
+  gap: 0;
+  margin-bottom: 1.25rem;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  width: fit-content;
+}
+.tab {
+  font: inherit;
+  padding: 0.55rem 1.25rem;
+  border: none;
+  cursor: pointer;
+  background: var(--surface);
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: background 0.15s, color 0.15s;
+  border-right: 1px solid var(--border);
+}
+.tab:last-child {
+  border-right: none;
+}
+.tab:hover {
+  background: var(--surface2);
+  color: var(--text);
+}
+.tab-active {
+  background: var(--accent);
+  color: white;
+}
+.tab-active:hover {
+  background: var(--accent);
+  color: white;
+}
+.week-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  margin-bottom: 0.25rem;
+}
+.week-header-cell {
+  text-align: center;
+  padding: 0.5rem 0.25rem;
+  background: var(--surface);
+  border-radius: 8px 8px 0 0;
+}
+.week-day {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+.week-date {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+.cal-section {
+  margin-top: 0.5rem;
+}
+.cal-group {
+  margin-bottom: 1.5rem;
+}
+.cal-group-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 0.5rem 0;
+  margin: 0 0 0.5rem;
+  border-bottom: 2px solid var(--accent);
+  color: var(--text);
+}
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.day-cell {
+  min-height: 80px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.4rem;
+}
+.cal-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.45rem 0.55rem;
+  margin-bottom: 4px;
+  font-size: 0.82rem;
+}
+.cal-card:last-child {
+  margin-bottom: 0;
+}
+.cal-time {
+  font-weight: 700;
+  color: var(--accent);
+  font-size: 0.78rem;
+  margin-bottom: 0.2rem;
+}
+.cal-course {
+  margin-bottom: 0.15rem;
+}
+.cal-course .badge {
+  margin-right: 0.3rem;
+}
+.cal-meta {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.cal-room {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.cal-enrollment {
+  color: var(--muted);
+  font-size: 0.75rem;
+  margin-top: 0.1rem;
+}
+
 @media (max-width: 960px) {
   .app-shell {
     flex-direction: column;

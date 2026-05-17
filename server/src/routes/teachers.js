@@ -1,60 +1,54 @@
 import { Router } from "express";
-import { db } from "../db.js";
+import { pool } from "../db.js";
 
 export const teachersRouter = Router();
 
-teachersRouter.get("/", (_req, res) => {
-  const rows = db.prepare("SELECT * FROM teachers ORDER BY id DESC").all();
-  res.json(rows);
+teachersRouter.get("/", async (_req, res, next) => {
+  try {
+    const [rows] = await pool.query("SELECT * FROM teachers ORDER BY id DESC");
+    res.json(rows);
+  } catch (e) { next(e); }
 });
 
-teachersRouter.get("/:id", (req, res) => {
-  const row = db.prepare("SELECT * FROM teachers WHERE id = ?").get(req.params.id);
-  if (!row) return res.status(404).json({ error: "教师不存在" });
-  res.json(row);
+teachersRouter.get("/:id", async (req, res, next) => {
+  try {
+    const [[row]] = await pool.query("SELECT * FROM teachers WHERE id = ?", [req.params.id]);
+    if (!row) return res.status(404).json({ error: "教师不存在" });
+    res.json(row);
+  } catch (e) { next(e); }
 });
 
-teachersRouter.post("/", (req, res) => {
-  const { name, email, phone, department, title } = req.body;
-  if (!name?.trim()) return res.status(400).json({ error: "姓名必填" });
-  const info = db
-    .prepare(
-      `INSERT INTO teachers (name, email, phone, department, title)
-       VALUES (@name, @email, @phone, @department, @title)`
-    )
-    .run({
-      name: name.trim(),
-      email: email?.trim() || null,
-      phone: phone?.trim() || null,
-      department: department?.trim() || null,
-      title: title?.trim() || null,
-    });
-  const row = db.prepare("SELECT * FROM teachers WHERE id = ?").get(info.lastInsertRowid);
-  res.status(201).json(row);
+teachersRouter.post("/", async (req, res, next) => {
+  try {
+    const { name, email, phone, department, title } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: "姓名必填" });
+    const [result] = await pool.query(
+      `INSERT INTO teachers (name, email, phone, department, title) VALUES (?, ?, ?, ?, ?)`,
+      [name.trim(), email?.trim() || null, phone?.trim() || null, department?.trim() || null, title?.trim() || null]
+    );
+    const [[row]] = await pool.query("SELECT * FROM teachers WHERE id = ?", [result.insertId]);
+    res.status(201).json(row);
+  } catch (e) { next(e); }
 });
 
-teachersRouter.put("/:id", (req, res) => {
-  const { name, email, phone, department, title } = req.body;
-  if (!name?.trim()) return res.status(400).json({ error: "姓名必填" });
-  const r = db
-    .prepare(
-      `UPDATE teachers SET name=@name, email=@email, phone=@phone, department=@department, title=@title WHERE id=@id`
-    )
-    .run({
-      id: req.params.id,
-      name: name.trim(),
-      email: email?.trim() || null,
-      phone: phone?.trim() || null,
-      department: department?.trim() || null,
-      title: title?.trim() || null,
-    });
-  if (r.changes === 0) return res.status(404).json({ error: "教师不存在" });
-  const row = db.prepare("SELECT * FROM teachers WHERE id = ?").get(req.params.id);
-  res.json(row);
+teachersRouter.put("/:id", async (req, res, next) => {
+  try {
+    const { name, email, phone, department, title } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: "姓名必填" });
+    const [result] = await pool.query(
+      `UPDATE teachers SET name=?, email=?, phone=?, department=?, title=? WHERE id=?`,
+      [name.trim(), email?.trim() || null, phone?.trim() || null, department?.trim() || null, title?.trim() || null, req.params.id]
+    );
+    if (result.affectedRows === 0) return res.status(404).json({ error: "教师不存在" });
+    const [[row]] = await pool.query("SELECT * FROM teachers WHERE id = ?", [req.params.id]);
+    res.json(row);
+  } catch (e) { next(e); }
 });
 
-teachersRouter.delete("/:id", (req, res) => {
-  const r = db.prepare("DELETE FROM teachers WHERE id = ?").run(req.params.id);
-  if (r.changes === 0) return res.status(404).json({ error: "教师不存在" });
-  res.status(204).send();
+teachersRouter.delete("/:id", async (req, res, next) => {
+  try {
+    const [result] = await pool.query("DELETE FROM teachers WHERE id = ?", [req.params.id]);
+    if (result.affectedRows === 0) return res.status(404).json({ error: "教师不存在" });
+    res.status(204).send();
+  } catch (e) { next(e); }
 });

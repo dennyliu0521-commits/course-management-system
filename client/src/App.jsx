@@ -4,6 +4,8 @@ import Courses from "./pages/Courses.jsx";
 import Students from "./pages/Students.jsx";
 import Teachers from "./pages/Teachers.jsx";
 import CoursePlanning from "./pages/CoursePlanning.jsx";
+import CalendarView from "./pages/CalendarView.jsx";
+import Classes from "./pages/Classes.jsx";
 
 export default function App() {
   return (
@@ -20,11 +22,17 @@ export default function App() {
           <NavLink to="/students" className={({ isActive }) => (isActive ? "active" : "")}>
             学生管理
           </NavLink>
+          <NavLink to="/classes" className={({ isActive }) => (isActive ? "active" : "")}>
+            班级管理
+          </NavLink>
           <NavLink to="/teachers" className={({ isActive }) => (isActive ? "active" : "")}>
             教师管理
           </NavLink>
           <NavLink to="/planning" className={({ isActive }) => (isActive ? "active" : "")}>
             课程规划
+          </NavLink>
+          <NavLink to="/calendar" className={({ isActive }) => (isActive ? "active" : "")}>
+            课程日历
           </NavLink>
         </nav>
       </aside>
@@ -33,8 +41,10 @@ export default function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/courses" element={<Courses />} />
           <Route path="/students" element={<Students />} />
+          <Route path="/classes" element={<Classes />} />
           <Route path="/teachers" element={<Teachers />} />
           <Route path="/planning" element={<CoursePlanning />} />
+          <Route path="/calendar" element={<CalendarView />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

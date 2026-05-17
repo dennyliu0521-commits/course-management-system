@@ -9,8 +9,25 @@
 
 ## 技术栈
 
-- 后端：Node.js + Express + SQLite（`better-sqlite3`）
+- 后端：Node.js + Express + MySQL（`mysql2`）
 - 前端：React + Vite + React Router
+
+## 前置条件
+
+需要本地运行 MySQL 服务。默认连接配置：
+
+| 变量 | 默认值 |
+|---|---|
+| `DB_HOST` | `127.0.0.1` |
+| `DB_PORT` | `3306` |
+| `DB_USER` | `root` |
+| `DB_PASSWORD` | (空) |
+| `DB_NAME` | `course_management` |
+| `DB_SOCKET` | (空，使用 TCP 连接) |
+
+可通过环境变量覆盖。若使用 Unix socket 连接，设置 `DB_SOCKET` 即可。
+
+数据库和表会在首次启动时自动创建。
 
 ## 本地运行
 
@@ -28,9 +45,9 @@ npm run install:all
 npm run dev
 ```
 
-3. 浏览器打开：<http://127.0.0.1:5173>（Vite 已固定使用 `127.0.0.1`，并将 `/api` 代理到后端 `127.0.0.1:3001`）
+如需指定 socket 连接 MySQL：`DB_SOCKET=/path/to/mysql.sock npm run dev`
 
-数据库文件位于 `server/data/cms.sqlite`，首次运行会自动创建。
+3. 浏览器打开：<http://127.0.0.1:5173>（Vite 已固定使用 `127.0.0.1`，并将 `/api` 代理到后端 `127.0.0.1:3001`）
 
 ## 单端口运行（推荐排查「页面空白 / 接口失败」）
 
@@ -56,6 +73,6 @@ npm run build
 
 ## 常见问题
 
-- **`better-sqlite3` 安装失败**：需本机可编译原生模块（Xcode Command Line Tools）。可尝试 `npm rebuild better-sqlite3 --prefix server`。
+- **MySQL 连接失败**：确认 MySQL 服务已启动，检查环境变量配置是否正确。
 - **开发时接口报错**：请确认 **`npm run dev` 同时起了 server 与 client**；不要只运行 `npm run dev --prefix client`。
 - **端口占用**：后端默认 `3001`，前端 `5173`。可设置环境变量 `PORT=3002` 等后改 `vite.config.js` 里 proxy 的 `target`。

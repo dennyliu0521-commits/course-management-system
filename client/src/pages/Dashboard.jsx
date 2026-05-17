@@ -3,18 +3,19 @@ import { Link } from "react-router-dom";
 import { api } from "../api.js";
 
 export default function Dashboard() {
-  const [counts, setCounts] = useState({ courses: 0, students: 0, teachers: 0, plans: 0 });
+  const [counts, setCounts] = useState({ courses: 0, students: 0, teachers: 0, plans: 0, classes: 0 });
   const [error, setError] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [courses, students, teachers, plans] = await Promise.all([
+        const [courses, students, teachers, plans, classes] = await Promise.all([
           api.courses.list(),
           api.students.list(),
           api.teachers.list(),
           api.coursePlans.list(),
+          api.classes.list(),
         ]);
         if (!cancelled) {
           setCounts({
@@ -22,6 +23,7 @@ export default function Dashboard() {
             students: students.length,
             teachers: teachers.length,
             plans: plans.length,
+            classes: classes.length,
           });
         }
       } catch (e) {
@@ -36,7 +38,7 @@ export default function Dashboard() {
   return (
     <>
       <h1 className="page-title">概览</h1>
-      <p className="page-desc">统一管理课程、学生、教师与学期开课计划。</p>
+      <p className="page-desc">统一管理课程、学生、教师、班级与学期开课计划。</p>
       {error && <div className="msg msg-error">{error}</div>}
       <div className="dashboard-grid">
         <div className="stat-card">
@@ -55,6 +57,12 @@ export default function Dashboard() {
           <div className="num">{counts.teachers}</div>
           <div className="lbl">
             <Link to="/teachers">教师</Link>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="num">{counts.classes}</div>
+          <div className="lbl">
+            <Link to="/classes">班级</Link>
           </div>
         </div>
         <div className="stat-card">

@@ -62,4 +62,15 @@ export const api = {
     dropEnrollment: (planId, enrollmentId) =>
       request(`/course-plans/${planId}/enrollments/${enrollmentId}`, { method: "DELETE" }),
   },
+  classes: {
+    list: () => request("/classes"),
+    get: (id) => request(`/classes/${id}`),
+    create: (body) => request("/classes", { method: "POST", body: JSON.stringify(body) }),
+    update: (id, body) => request(`/classes/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+    remove: (id) => request(`/classes/${id}`, { method: "DELETE" }),
+    students: (classId) => request(`/classes/${classId}/students`),
+  },
+  calendar: {
+    weekly: (date) => request(`/calendar/weekly?date=${encodeURIComponent(date)}`),
+  },
 };

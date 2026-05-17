@@ -9,13 +9,25 @@ const emptyPlan = {
   capacity: 40,
   schedule_note: "",
   room: "",
+  course_start_date: "",
+  course_end_date: "",
+  class_ids: [],
 };
+
+function toDatetimeLocal(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
 export default function CoursePlanning() {
   const [plans, setPlans] = useState([]);
   const [courses, setCourses] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [students, setStudents] = useState([]);
+  const [classes, setClasses] = useState([]);
   const [form, setForm] = useState(emptyPlan);
   const [editingId, setEditingId] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
@@ -25,16 +37,18 @@ export default function CoursePlanning() {
 
   const loadAll = useCallback(async () => {
     setError(null);
-    const [p, c, t, s] = await Promise.all([
+    const [p, c, t, s, cl] = await Promise.all([
       api.coursePlans.list(),
       api.courses.list(),
       api.teachers.list(),
       api.students.list(),
+      api.classes.list(),
     ]);
     setPlans(p);
     setCourses(c);
     setTeachers(t);
     setStudents(s);
+    setClasses(cl);
   }, []);
 
   useEffect(() => {
@@ -72,6 +86,18 @@ export default function CoursePlanning() {
       capacity: row.capacity,
       schedule_note: row.schedule_note || "",
       room: row.room || "",
+      course_start_date: toDatetimeLocal(row.course_start_date),
+      course_end_date: toDatetimeLocal(row.course_end_date),
+      class_ids: (row.classes || []).map((c) => c.id),
+    });
+  }
+
+  function toggleClassId(id) {
+    setForm((f) => {
+      const set = new Set(f.class_ids);
+      if (set.has(id)) set.delete(id);
+      else set.add(id);
+      return { ...f, class_ids: [...set] };
     });
   }
 
@@ -87,6 +113,9 @@ export default function CoursePlanning() {
         capacity: Number(form.capacity),
         schedule_note: form.schedule_note,
         room: form.room,
+        course_start_date: form.course_start_date ? new Date(form.course_start_date).toISOString() : null,
+        course_end_date: form.course_end_date ? new Date(form.course_end_date).toISOString() : null,
+        class_ids: form.class_ids || [],
       };
       if (editingId) await api.coursePlans.update(editingId, payload);
       else await api.coursePlans.create(payload);
@@ -144,7 +173,7 @@ export default function CoursePlanning() {
   return (
     <>
       <h1 className="page-title">课程规划</h1>
-      <p className="page-desc">按学年学期排课：指定课程、任课教师、教室与容量，并管理学生选课。</p>
+      <p className="page-desc">按学年学期排课：指定课程、任课教师、教室、容量、关联班级，并管理学生选课。</p>
       {error && <div className="msg msg-error">{error}</div>}
       <div className="split">
         <div>
@@ -214,6 +243,49 @@ export default function CoursePlanning() {
                   教室
                   <input value={form.room} onChange={(e) => setForm({ ...form, room: e.target.value })} />
                 </label>
+                <label>
+                  开始时间
+                  <input
+                    type="datetime-local"
+                    value={form.course_start_date || ""}
+                    onChange={(e) => setForm({ ...form, course_start_date: e.target.value })}
+                  />
+                </label>
+                <label>
+                  结束时间
+                  <input
+                    type="datetime-local"
+                    value={form.course_end_date || ""}
+                    onChange={(e) => setForm({ ...form, course_end_date: e.target.value })}
+                  />
+                </label>
+              </div>
+              {/* Class selection */}
+              <div style={{ marginTop: "1rem" }}>
+                <label style={{ marginBottom: "0.5rem", display: "block" }}>
+                  关联班级
+                </label>
+                {classes.length === 0 ? (
+                  <p style={{ color: "var(--muted)", fontSize: "0.85rem" }}>
+                    暂无班级，请先在「班级管理」中添加。
+                  </p>
+                ) : (
+                  <div className="class-check-grid">
+                    {classes.map((cl) => (
+                      <label key={cl.id} className="class-check-label">
+                        <input
+                          type="checkbox"
+                          checked={form.class_ids.includes(cl.id)}
+                          onChange={() => toggleClassId(cl.id)}
+                        />
+                        <span className="badge">{cl.class_code}</span>
+                        <span style={{ fontSize: "0.82rem", color: "var(--muted)" }}>
+                          {cl.enrollment_year}届 {cl.major} {cl.class_number}班
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
               </div>
               <label style={{ marginTop: "1rem" }}>
                 上课时间说明
@@ -251,7 +323,9 @@ export default function CoursePlanning() {
                     <th>学年学期</th>
                     <th>课程</th>
                     <th>教师</th>
-                    <th>教室 / 时间</th>
+                    <th>关联班级</th>
+                    <th>教室</th>
+                    <th>开始 / 结束</th>
                     <th />
                   </tr>
                 </thead>
@@ -272,8 +346,34 @@ export default function CoursePlanning() {
                         <span className="badge">{p.course_code}</span> {p.course_name}
                       </td>
                       <td>{p.teacher_name || "—"}</td>
-                      <td style={{ color: "var(--muted)", fontSize: "0.85rem" }}>
-                        {[p.room, p.schedule_note].filter(Boolean).join(" · ") || "—"}
+                      <td style={{ fontSize: "0.82rem" }}>
+                        {p.class_codes?.length > 0
+                          ? p.class_codes.map((cd) => (
+                              <span key={cd} className="badge" style={{ marginRight: 4 }}>
+                                {cd}
+                              </span>
+                            ))
+                          : "—"}
+                      </td>
+                      <td>{p.room || "—"}</td>
+                      <td style={{ color: "var(--muted)", fontSize: "0.82rem" }}>
+                        {p.course_start_date
+                          ? new Date(p.course_start_date).toLocaleString("zh-CN", {
+                              month: "2-digit",
+                              day: "2-digit",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
+                          : "—"}
+                        {" ~ "}
+                        {p.course_end_date
+                          ? new Date(p.course_end_date).toLocaleString("zh-CN", {
+                              month: "2-digit",
+                              day: "2-digit",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
+                          : "—"}
                       </td>
                       <td onClick={(e) => e.stopPropagation()}>
                         <div className="btn-row">
@@ -327,6 +427,7 @@ export default function CoursePlanning() {
                     {students.map((s) => (
                       <option key={s.id} value={s.id}>
                         {s.student_no} {s.name}
+                        {s.class_code ? ` (${s.class_code})` : ""}
                       </option>
                     ))}
                   </select>
@@ -359,8 +460,8 @@ export default function CoursePlanning() {
                     >
                       <span>
                         {e.student_no} {e.student_name}
-                        {e.major ? (
-                          <span style={{ color: "var(--muted)", fontSize: "0.8rem" }}> · {e.major}</span>
+                        {e.class_code ? (
+                          <span style={{ color: "var(--muted)", fontSize: "0.8rem" }}> · {e.class_code}</span>
                         ) : null}
                       </span>
                       <button type="button" className="btn btn-danger" onClick={() => dropEnrollment(e.id)}>

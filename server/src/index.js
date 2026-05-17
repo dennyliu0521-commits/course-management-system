@@ -3,13 +3,13 @@ import cors from "cors";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { initStore } from "./store.js";
+import { initDb } from "./db.js";
 import { teachersRouter } from "./routes/teachers.js";
 import { studentsRouter } from "./routes/students.js";
 import { coursesRouter } from "./routes/courses.js";
 import { coursePlansRouter } from "./routes/coursePlans.js";
-
-initStore();
+import { calendarRouter } from "./routes/calendar.js";
+import { classesRouter } from "./routes/classes.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const clientDist = path.join(__dirname, "../../client/dist");
@@ -28,6 +28,8 @@ app.use("/api/teachers", teachersRouter);
 app.use("/api/students", studentsRouter);
 app.use("/api/courses", coursesRouter);
 app.use("/api/course-plans", coursePlansRouter);
+app.use("/api/calendar", calendarRouter);
+app.use("/api/classes", classesRouter);
 
 app.use("/api", (_req, res) => {
   res.status(404).json({ error: "接口不存在" });
@@ -45,9 +47,11 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ error: err.message || "服务器错误" });
 });
 
+await initDb();
+
 app.listen(PORT, "0.0.0.0", () => {
   const hasUi = fs.existsSync(path.join(clientDist, "index.html"));
-  console.log(`Course management API: http://localhost:${PORT}/api/health`);
+  console.log(`Course management API (MySQL): http://localhost:${PORT}/api/health`);
   if (hasUi) {
     console.log(`Web UI: http://localhost:${PORT}/`);
   } else {
