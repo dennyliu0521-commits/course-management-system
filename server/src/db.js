@@ -1,4 +1,5 @@
 import mysql from 'mysql2/promise';
+import bcrypt from "bcryptjs";
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST || '127.0.0.1',
@@ -13,9 +14,27 @@ const pool = mysql.createPool({
 
 export { pool };
 
+async function migrateColumn(conn, table, col, def) {
+  try { await conn.execute(`ALTER TABLE ${table} ADD COLUMN ${col} ${def}`); } catch { /* exists */ }
+}
+
 export async function initDb() {
   const conn = await pool.getConnection();
   try {
+    // --- users ---
+    await conn.execute(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(100) UNIQUE NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        role ENUM('admin','teacher','student') NOT NULL DEFAULT 'student',
+        related_id INT,
+        name VARCHAR(100) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB
+    `);
+
+    // --- teachers ---
     await conn.execute(`
       CREATE TABLE IF NOT EXISTS teachers (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -28,6 +47,7 @@ export async function initDb() {
       ) ENGINE=InnoDB
     `);
 
+    // --- classes ---
     await conn.execute(`
       CREATE TABLE IF NOT EXISTS classes (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -40,6 +60,7 @@ export async function initDb() {
       ) ENGINE=InnoDB
     `);
 
+    // --- students ---
     await conn.execute(`
       CREATE TABLE IF NOT EXISTS students (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -51,19 +72,14 @@ export async function initDb() {
         FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE SET NULL
       ) ENGINE=InnoDB
     `);
-
-    // Migrate: add class_id if it doesn't exist on existing students table
-    for (const col of ["class_id"]) {
-      try {
-        await conn.execute(`ALTER TABLE students ADD COLUMN ${col} INT`);
-      } catch { /* column already exists */ }
-    }
+    await migrateColumn(conn, "students", "class_id", "INT");
     try {
       await conn.execute(
         `ALTER TABLE students ADD CONSTRAINT students_class_fk FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE SET NULL`
       );
-    } catch { /* constraint already exists */ }
+    } catch { /* exists */ }
 
+    // --- courses (add type for 必修/选修) ---
     await conn.execute(`
       CREATE TABLE IF NOT EXISTS courses (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -74,7 +90,9 @@ export async function initDb() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       ) ENGINE=InnoDB
     `);
+    await migrateColumn(conn, "courses", "type", "ENUM('必修','选修') NOT NULL DEFAULT '必修'");
 
+    // --- course_plans (add status) ---
     await conn.execute(`
       CREATE TABLE IF NOT EXISTS course_plans (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -93,13 +111,12 @@ export async function initDb() {
         FOREIGN KEY (teacher_id) REFERENCES teachers(id) ON DELETE SET NULL
       ) ENGINE=InnoDB
     `);
-
     for (const col of ["course_start_date", "course_end_date"]) {
-      try {
-        await conn.execute(`ALTER TABLE course_plans ADD COLUMN ${col} TIMESTAMP NULL`);
-      } catch { /* column already exists */ }
+      await migrateColumn(conn, "course_plans", col, "TIMESTAMP NULL");
     }
+    await migrateColumn(conn, "course_plans", "status", "ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending'");
 
+    // --- course_plan_classes ---
     await conn.execute(`
       CREATE TABLE IF NOT EXISTS course_plan_classes (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -111,6 +128,7 @@ export async function initDb() {
       ) ENGINE=InnoDB
     `);
 
+    // --- enrollments (add approval_status) ---
     await conn.execute(`
       CREATE TABLE IF NOT EXISTS enrollments (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -122,6 +140,35 @@ export async function initDb() {
         FOREIGN KEY (course_plan_id) REFERENCES course_plans(id) ON DELETE CASCADE
       ) ENGINE=InnoDB
     `);
+    await migrateColumn(conn, "enrollments", "approval_status", "ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved'");
+
+    // --- grades ---
+    await conn.execute(`
+      CREATE TABLE IF NOT EXISTS grades (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        student_id INT NOT NULL,
+        course_plan_id INT NOT NULL,
+        teacher_id INT NOT NULL,
+        score DECIMAL(5,1),
+        comment TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (student_id, course_plan_id, teacher_id),
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+        FOREIGN KEY (course_plan_id) REFERENCES course_plans(id) ON DELETE CASCADE,
+        FOREIGN KEY (teacher_id) REFERENCES teachers(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB
+    `);
+
+    // --- Seed admin user ---
+    const [[admin]] = await conn.query("SELECT id FROM users WHERE username = ?", ["admin"]);
+    if (!admin) {
+      const hash = await bcrypt.hash("admin123", 10);
+      await conn.query(
+        "INSERT INTO users (username, password_hash, role, related_id, name) VALUES (?, ?, 'admin', NULL, ?)",
+        ["admin", hash, "系统管理员"]
+      );
+      console.log("Default admin created: admin / admin123");
+    }
   } finally {
     conn.release();
   }

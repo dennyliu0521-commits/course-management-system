@@ -26,7 +26,7 @@ async function classesForPlan(planId) {
 async function rowWithJoins(planId) {
   const [[row]] = await pool.query(
     `SELECT cp.*,
-      c.code AS course_code, c.name AS course_name, c.credits,
+      c.code AS course_code, c.name AS course_name, c.credits, c.type AS course_type,
       t.name AS teacher_name, t.department AS teacher_department
      FROM course_plans cp
      JOIN courses c ON c.id = cp.course_id
@@ -44,7 +44,7 @@ coursePlansRouter.get("/", async (_req, res, next) => {
   try {
     const [rows] = await pool.query(
       `SELECT cp.*,
-        c.code AS course_code, c.name AS course_name, c.credits,
+        c.code AS course_code, c.name AS course_name, c.credits, c.type AS course_type,
         t.name AS teacher_name, t.department AS teacher_department,
         GROUP_CONCAT(DISTINCT cl.class_code ORDER BY cl.class_code SEPARATOR ', ') AS class_codes
        FROM course_plans cp
@@ -95,7 +95,7 @@ coursePlansRouter.get("/:id", async (req, res, next) => {
 });
 
 coursePlansRouter.post("/", async (req, res, next) => {
-  const { academic_year, semester, course_id, teacher_id, capacity, schedule_note, room, course_start_date, course_end_date, class_ids } = req.body;
+  const { academic_year, semester, course_id, teacher_id, capacity, schedule_note, room, course_start_date, course_end_date, class_ids, status } = req.body;
   if (!academic_year?.trim()) return res.status(400).json({ error: "学年必填，如 2024-2025" });
   if (!semester?.trim()) return res.status(400).json({ error: "学期必填" });
   const cid = Number(course_id);
@@ -103,6 +103,7 @@ coursePlansRouter.post("/", async (req, res, next) => {
   const cap = capacity != null ? Number(capacity) : 40;
   if (Number.isNaN(cap) || cap < 1) return res.status(400).json({ error: "容量须为正整数" });
   let tid = teacher_id != null && teacher_id !== "" ? Number(teacher_id) : null;
+  const planStatus = ["approved", "rejected"].includes(status) ? status : "pending";
   const clsIds = (class_ids || []).map(Number).filter((id) => id > 0);
   try {
     const [[course]] = await pool.query("SELECT id FROM courses WHERE id = ?", [cid]);
@@ -120,9 +121,9 @@ coursePlansRouter.post("/", async (req, res, next) => {
     const sd = toMysqlDatetime(course_start_date);
     const ed = toMysqlDatetime(course_end_date);
     const [result] = await pool.query(
-      `INSERT INTO course_plans (academic_year, semester, course_id, teacher_id, capacity, schedule_note, room, course_start_date, course_end_date)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [academic_year.trim(), semester.trim(), cid, tid, cap, schedule_note?.trim() || null, room?.trim() || null, sd, ed]
+      `INSERT INTO course_plans (academic_year, semester, course_id, teacher_id, capacity, schedule_note, room, course_start_date, course_end_date, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [academic_year.trim(), semester.trim(), cid, tid, cap, schedule_note?.trim() || null, room?.trim() || null, sd, ed, planStatus]
     );
     // Insert class associations
     for (const clid of clsIds) {
@@ -137,7 +138,7 @@ coursePlansRouter.post("/", async (req, res, next) => {
 });
 
 coursePlansRouter.put("/:id", async (req, res, next) => {
-  const { academic_year, semester, course_id, teacher_id, capacity, schedule_note, room, course_start_date, course_end_date, class_ids } = req.body;
+  const { academic_year, semester, course_id, teacher_id, capacity, schedule_note, room, course_start_date, course_end_date, class_ids, status } = req.body;
   if (!academic_year?.trim()) return res.status(400).json({ error: "学年必填" });
   if (!semester?.trim()) return res.status(400).json({ error: "学期必填" });
   const cid = Number(course_id);
@@ -145,6 +146,7 @@ coursePlansRouter.put("/:id", async (req, res, next) => {
   const cap = capacity != null ? Number(capacity) : 40;
   if (Number.isNaN(cap) || cap < 1) return res.status(400).json({ error: "容量须为正整数" });
   let tid = teacher_id != null && teacher_id !== "" ? Number(teacher_id) : null;
+  const planStatus = ["approved", "rejected"].includes(status) ? status : "pending";
   const clsIds = (class_ids || []).map(Number).filter((id) => id > 0);
   try {
     const [[course]] = await pool.query("SELECT id FROM courses WHERE id = ?", [cid]);
@@ -162,8 +164,8 @@ coursePlansRouter.put("/:id", async (req, res, next) => {
     const sd = toMysqlDatetime(course_start_date);
     const ed = toMysqlDatetime(course_end_date);
     const [result] = await pool.query(
-      `UPDATE course_plans SET academic_year=?, semester=?, course_id=?, teacher_id=?, capacity=?, schedule_note=?, room=?, course_start_date=?, course_end_date=? WHERE id=?`,
-      [academic_year.trim(), semester.trim(), cid, tid, cap, schedule_note?.trim() || null, room?.trim() || null, sd, ed, req.params.id]
+      `UPDATE course_plans SET academic_year=?, semester=?, course_id=?, teacher_id=?, capacity=?, schedule_note=?, room=?, course_start_date=?, course_end_date=?, status=? WHERE id=?`,
+      [academic_year.trim(), semester.trim(), cid, tid, cap, schedule_note?.trim() || null, room?.trim() || null, sd, ed, planStatus, req.params.id]
     );
     if (result.affectedRows === 0) return res.status(404).json({ error: "开课计划不存在" });
     // Replace class associations

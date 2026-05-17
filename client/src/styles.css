@@ -475,6 +475,50 @@ textarea {
   margin-top: 0.1rem;
 }
 
+/* Login */
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.login-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2.5rem 2rem;
+  width: 400px;
+  max-width: 90vw;
+}
+.login-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.4rem;
+  font-weight: 700;
+  text-align: center;
+}
+.login-desc {
+  margin: 0 0 1.5rem;
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.9rem;
+}
+.login-help {
+  margin: 1.5rem 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+/* Top bar */
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+}
+.top-bar .page-title { margin-bottom: 0.1rem; }
+.top-bar .page-desc { margin-bottom: 0; }
+
 @media (max-width: 960px) {
   .app-shell {
     flex-direction: column;

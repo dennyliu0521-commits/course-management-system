@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../api.js";
 
-const empty = { code: "", name: "", credits: 3, description: "" };
+const empty = { code: "", name: "", credits: 3, description: "", type: "必修" };
 
 export default function Courses() {
   const [rows, setRows] = useState([]);
@@ -26,6 +26,7 @@ export default function Courses() {
       name: row.name,
       credits: row.credits,
       description: row.description || "",
+      type: row.type || "必修",
     });
   }
 
@@ -60,7 +61,7 @@ export default function Courses() {
   return (
     <>
       <h1 className="page-title">课程管理</h1>
-      <p className="page-desc">维护课程代码、名称、学分与简介。</p>
+      <p className="page-desc">维护课程代码、名称、学分、类型与简介。必修课按班级自动排课，选修课由学生自主选择。</p>
       {error && <div className="msg msg-error">{error}</div>}
       <div className="card">
         <h2>{editingId ? "编辑课程" : "新增课程"}</h2>
@@ -93,6 +94,13 @@ export default function Courses() {
                 value={form.credits}
                 onChange={(e) => setForm({ ...form, credits: e.target.value })}
               />
+            </label>
+            <label>
+              课程类型
+              <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
+                <option value="必修">必修</option>
+                <option value="选修">选修</option>
+              </select>
             </label>
           </div>
           <label style={{ marginTop: "1rem" }}>
@@ -127,6 +135,7 @@ export default function Courses() {
                 <th>代码</th>
                 <th>名称</th>
                 <th>学分</th>
+                <th>类型</th>
                 <th>简介</th>
                 <th />
               </tr>
@@ -139,7 +148,15 @@ export default function Courses() {
                   </td>
                   <td>{r.name}</td>
                   <td>{r.credits}</td>
-                  <td style={{ maxWidth: 280, color: "var(--muted)" }}>
+                  <td>
+                    <span className="badge" style={{
+                      background: r.type === "选修" ? "rgba(61,139,253,0.15)" : undefined,
+                      color: r.type === "选修" ? "var(--accent)" : undefined,
+                    }}>
+                      {r.type || "必修"}
+                    </span>
+                  </td>
+                  <td style={{ maxWidth: 250, color: "var(--muted)" }}>
                     {r.description || "—"}
                   </td>
                   <td>

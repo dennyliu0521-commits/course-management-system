@@ -1,10 +1,15 @@
+function getToken() {
+  return localStorage.getItem("token");
+}
+
 async function request(path, options = {}) {
+  const token = getToken();
+  const headers = { "Content-Type": "application/json", ...options.headers };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
   let res;
   try {
-    res = await fetch(`/api${path}`, {
-      headers: { "Content-Type": "application/json", ...options.headers },
-      ...options,
-    });
+    res = await fetch(`/api${path}`, { headers, ...options });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg === "Failed to fetch" || msg.includes("NetworkError") || msg.includes("Load failed")) {
@@ -29,6 +34,10 @@ async function request(path, options = {}) {
 }
 
 export const api = {
+  auth: {
+    login: (username, password) => request("/auth/login", { method: "POST", body: JSON.stringify({ username, password }) }),
+    me: () => request("/auth/me"),
+  },
   teachers: {
     list: () => request("/teachers"),
     get: (id) => request(`/teachers/${id}`),
@@ -72,5 +81,25 @@ export const api = {
   },
   calendar: {
     weekly: (date) => request(`/calendar/weekly?date=${encodeURIComponent(date)}`),
+  },
+  teacher: {
+    myPlans: () => request("/teacher/my-plans"),
+    planStatus: (id, status) => request(`/teacher/plans/${id}/status`, { method: "PUT", body: JSON.stringify({ status }) }),
+    planStudents: (planId) => request(`/teacher/plan/${planId}/students`),
+    grades: () => request("/teacher/grades"),
+    saveGrade: (body) => request("/teacher/grades", { method: "POST", body: JSON.stringify(body) }),
+  },
+  student: {
+    mySchedule: () => request("/student/my-schedule"),
+    myGrades: () => request("/student/my-grades"),
+    availableElectives: () => request("/student/available-electives"),
+    enroll: (course_plan_id) => request("/student/enroll", { method: "POST", body: JSON.stringify({ course_plan_id }) }),
+    dropEnroll: (planId) => request(`/student/enroll/${planId}`, { method: "DELETE" }),
+  },
+  admin: {
+    pendingEnrollments: () => request("/admin/pending-enrollments"),
+    enrollmentStatus: (id, status) => request(`/admin/enrollments/${id}/status`, { method: "PUT", body: JSON.stringify({ status }) }),
+    users: () => request("/admin/users"),
+    createUser: (body) => request("/admin/users", { method: "POST", body: JSON.stringify(body) }),
   },
 };

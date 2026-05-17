@@ -322,10 +322,12 @@ export default function CoursePlanning() {
                   <tr>
                     <th>学年学期</th>
                     <th>课程</th>
+                    <th>类型</th>
                     <th>教师</th>
+                    <th>状态</th>
                     <th>关联班级</th>
                     <th>教室</th>
-                    <th>开始 / 结束</th>
+                    <th>时间</th>
                     <th />
                   </tr>
                 </thead>
@@ -345,7 +347,24 @@ export default function CoursePlanning() {
                       <td>
                         <span className="badge">{p.course_code}</span> {p.course_name}
                       </td>
+                      <td>
+                        <span className="badge" style={{
+                          background: p.course_type === "选修" ? "rgba(61,139,253,0.15)" : undefined,
+                          color: p.course_type === "选修" ? "var(--accent)" : undefined,
+                        }}>
+                          {p.course_type || "必修"}
+                        </span>
+                      </td>
                       <td>{p.teacher_name || "—"}</td>
+                      <td>
+                        <span style={{
+                          color: p.status === "approved" ? "var(--success)" : p.status === "rejected" ? "var(--danger)" : "var(--accent)",
+                          fontWeight: 600,
+                          fontSize: "0.82rem",
+                        }}>
+                          {p.status === "approved" ? "已批准" : p.status === "rejected" ? "已拒绝" : "待确认"}
+                        </span>
+                      </td>
                       <td style={{ fontSize: "0.82rem" }}>
                         {p.class_codes?.length > 0
                           ? p.class_codes.map((cd) => (
@@ -358,21 +377,11 @@ export default function CoursePlanning() {
                       <td>{p.room || "—"}</td>
                       <td style={{ color: "var(--muted)", fontSize: "0.82rem" }}>
                         {p.course_start_date
-                          ? new Date(p.course_start_date).toLocaleString("zh-CN", {
-                              month: "2-digit",
-                              day: "2-digit",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })
+                          ? new Date(p.course_start_date).toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })
                           : "—"}
                         {" ~ "}
                         {p.course_end_date
-                          ? new Date(p.course_end_date).toLocaleString("zh-CN", {
-                              month: "2-digit",
-                              day: "2-digit",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })
+                          ? new Date(p.course_end_date).toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })
                           : "—"}
                       </td>
                       <td onClick={(e) => e.stopPropagation()}>

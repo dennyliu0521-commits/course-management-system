@@ -19,15 +19,16 @@ coursesRouter.get("/:id", async (req, res, next) => {
 });
 
 coursesRouter.post("/", async (req, res, next) => {
-  const { code, name, credits, description } = req.body;
+  const { code, name, credits, description, type } = req.body;
   if (!code?.trim()) return res.status(400).json({ error: "课程代码必填" });
   if (!name?.trim()) return res.status(400).json({ error: "课程名称必填" });
   const c = credits != null ? Number(credits) : 2;
   if (Number.isNaN(c) || c <= 0) return res.status(400).json({ error: "学分须为正数" });
+  const t = type === "选修" ? "选修" : "必修";
   try {
     const [result] = await pool.query(
-      `INSERT INTO courses (code, name, credits, description) VALUES (?, ?, ?, ?)`,
-      [code.trim(), name.trim(), c, description?.trim() || null]
+      `INSERT INTO courses (code, name, credits, description, type) VALUES (?, ?, ?, ?, ?)`,
+      [code.trim(), name.trim(), c, description?.trim() || null, t]
     );
     const [[row]] = await pool.query("SELECT * FROM courses WHERE id = ?", [result.insertId]);
     res.status(201).json(row);
@@ -38,15 +39,16 @@ coursesRouter.post("/", async (req, res, next) => {
 });
 
 coursesRouter.put("/:id", async (req, res, next) => {
-  const { code, name, credits, description } = req.body;
+  const { code, name, credits, description, type } = req.body;
   if (!code?.trim()) return res.status(400).json({ error: "课程代码必填" });
   if (!name?.trim()) return res.status(400).json({ error: "课程名称必填" });
   const c = credits != null ? Number(credits) : 2;
   if (Number.isNaN(c) || c <= 0) return res.status(400).json({ error: "学分须为正数" });
+  const t = type === "选修" ? "选修" : "必修";
   try {
     const [result] = await pool.query(
-      `UPDATE courses SET code=?, name=?, credits=?, description=? WHERE id=?`,
-      [code.trim(), name.trim(), c, description?.trim() || null, req.params.id]
+      `UPDATE courses SET code=?, name=?, credits=?, description=?, type=? WHERE id=?`,
+      [code.trim(), name.trim(), c, description?.trim() || null, t, req.params.id]
     );
     if (result.affectedRows === 0) return res.status(404).json({ error: "课程不存在" });
     const [[row]] = await pool.query("SELECT * FROM courses WHERE id = ?", [req.params.id]);
